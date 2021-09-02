@@ -23,6 +23,8 @@ configurations {
   aarch64OssDockerSource
   ossDockerSource
   transformLog4jJar
+  ppc64leDockerSource
+  ppc64leOssDockerSource
 }
 
 dependencies {
@@ -31,6 +33,8 @@ dependencies {
   aarch64OssDockerSource project(path: ":distribution:archives:oss-linux-aarch64-tar", configuration:"default")
   ossDockerSource project(path: ":distribution:archives:oss-linux-tar", configuration:"default")
   transformLog4jJar project(path: ":distribution:docker:transform-log4j-config", configuration: "default")
+  ppc64leDockerSource project(path: ":distribution:archives:linux-ppc64le-tar", configuration:"default")
+  ppc64leOssDockerSource project(path: ":distribution:archives:oss-linux-ppc64le-tar", configuration:"default")
 }
 
 ext.expansions = { Architecture architecture, boolean oss, DockerBase base, boolean local ->
@@ -40,6 +44,8 @@ ext.expansions = { Architecture architecture, boolean oss, DockerBase base, bool
       classifier = "linux-aarch64"
     } else if (architecture == Architecture.X64) {
       classifier = "linux-x86_64"
+    } else if (architecture == Architecture.PPC64LE) {
+      classifier = "linux-ppc64le"
     } else {
       throw new IllegalArgumentException("Unsupported architecture [" + architecture + "]")
     }
@@ -107,7 +113,7 @@ class SquashNewlinesFilter extends FilterReader {
 
 private static String buildPath(Architecture architecture, boolean oss, DockerBase base) {
   return 'build/' +
-    (architecture == Architecture.AARCH64 ? 'aarch64-' : '') +
+    (architecture == Architecture.AARCH64 ? 'aarch64-' : (architecture == Architecture.PPC64LE ? 'ppc64le-' : '')) +
     (oss ? 'oss-' : '') +
     (base == DockerBase.UBI ? 'ubi-' : '') +
     (base == DockerBase.UBI ? 'ubi-' : (base == DockerBase.IRON_BANK ? 'ironbank-' : '')) +
@@ -116,7 +122,7 @@ private static String buildPath(Architecture architecture, boolean oss, DockerBa
 
 private static String taskName(String prefix, Architecture architecture, boolean oss, DockerBase base, String suffix) {
   return prefix +
-    (architecture == Architecture.AARCH64 ? 'Aarch64' : '') +
+    (architecture == Architecture.AARCH64 ? 'aarch64-' : (architecture == Architecture.PPC64LE ? 'ppc64le-' : '')) +
     (oss ? 'Oss' : '') +
     (base == DockerBase.UBI ? 'Ubi' : (base == DockerBase.IRON_BANK ? 'IronBank' : '')) +
     suffix
@@ -197,6 +203,12 @@ void addCopyDockerContextTask(Architecture architecture, boolean oss, DockerBase
       } else {
         from configurations.aarch64DockerSource
       }
+    } else if (architecture == Architecture.PPC64LE) {
+      if (oss) {
+        from configurations.ppc64leOssDockerSource
+      } else {
+        from configurations.ppc64leDockerSource
+      }
     } else {
       if (oss) {
         from configurations.ossDockerSource
@@ -232,7 +244,7 @@ tasks.register("copyNodeKeyMaterial", Sync) {
 elasticsearch_distributions {
   Architecture.values().each { eachArchitecture ->
     Flavor.values().each { distroFlavor ->
-      "docker_$distroFlavor${ eachArchitecture == Architecture.AARCH64 ? '_aarch64' : '' }" {
+      "docker_$distroFlavor${ eachArchitecture == Architecture.AARCH64 ? '_aarch64' : (eachArchitecture == Architecture.PPC64LE ? '_ppc64le' : '') }" {
         architecture = eachArchitecture
         flavor = distroFlavor
         type = 'docker'
@@ -353,13 +365,13 @@ subprojects { Project subProject ->
   if (subProject.name.endsWith('-export')) {
     apply plugin: 'distribution'
 
-    final Architecture architecture = subProject.name.contains('aarch64-') ? Architecture.AARCH64 : Architecture.X64
+    final Architecture architecture = subProject.name.contains('aarch64-') ? Architecture.AARCH64 : (subProject.name.contains('ppc64le-') ? Architecture.PPC64LE : Architecture.X64)
     final boolean oss = subProject.name.contains('oss-')
     // We can ignore Iron Bank at the moment as we don't
     // build those images ourselves.
     final DockerBase base = subProject.name.contains('ubi-') ? DockerBase.UBI : DockerBase.CENTOS
 
-    final String arch = architecture == Architecture.AARCH64 ? '-aarch64' : ''
+    final String arch = architecture == Architecture.AARCH64 ? '-aarch64' : (architecture == Architecture.PPC64LE ? '-ppc64le' : '')
     final String suffix = oss ? '-oss' : base == DockerBase.UBI ? '-ubi8' : ''
     final String extension = base == DockerBase.UBI ? 'ubi.tar' : 'docker.tar'
     final String artifactName = "elasticsearch${arch}${suffix}_test"

@@ -11,6 +11,7 @@ package org.elasticsearch.gradle;
 public enum Architecture {
 
     X64("x86_64"),
+    PPC64LE("ppc64le"),
     AARCH64("aarch64");
 
     public final String classifier;
@@ -25,6 +26,8 @@ public enum Architecture {
             case "amd64":
             case "x86_64":
                 return X64;
+            case "ppc64le":
+                return PPC64LE;
             case "aarch64":
                 return AARCH64;
             default:

@@ -99,6 +99,8 @@ Closure commonPackageConfig(String type, boolean oss, boolean jdk, String archit
     if (type == 'deb') {
       if (architecture == 'x64') {
         arch('amd64')
+      } else if (architecture == 'ppc64le') {
+        arch('ppc64le')
       } else {
         assert architecture == 'aarch64' : architecture
         arch('arm64')
@@ -107,6 +109,8 @@ Closure commonPackageConfig(String type, boolean oss, boolean jdk, String archit
       assert type == 'rpm' : type
       if (architecture == 'x64') {
         arch('X86_64')
+      } else if (architecture == 'ppc64le') {
+        arch('ppc64le')
       } else {
         assert architecture == 'aarch64' : architecture
         arch('aarch64')
@@ -114,7 +118,7 @@ Closure commonPackageConfig(String type, boolean oss, boolean jdk, String archit
     }
     // Follow elasticsearch's file naming convention
     String jdkString = jdk ? "" : "no-jdk-"
-    String prefix = "${architecture == 'aarch64' ? 'aarch64-' : ''}${oss ? 'oss-' : ''}${jdk ? '' : 'no-jdk-'}${type}"
+    String prefix = "${architecture == 'aarch64' ? 'aarch64-' : (architecture == 'ppc64le' ? 'ppc64le-' : '')}${oss ? 'oss-' : ''}${jdk ? '' : 'no-jdk-'}${type}"
     destinationDirectory = file("${prefix}/build/distributions")
 
     // SystemPackagingTask overrides default archive task convention mappings, but doesn't provide a setter so we have to override the convention mapping itself
@@ -346,12 +350,20 @@ tasks.register('buildAarch64Deb', Deb) {
   configure(commonDebConfig(false, true, 'aarch64'))
 }
 
+tasks.register('buildPpc64leDeb', Deb) {
+  configure(commonDebConfig(false, true, 'ppc64le'))
+}
+
 tasks.register('buildDeb', Deb) {
   configure(commonDebConfig(false, true, 'x64'))
 }
 
 tasks.register('buildAarch64OssDeb', Deb) {
   configure(commonDebConfig(true, true, 'aarch64'))
+}
+
+tasks.register('buildPpc64leOssDeb', Deb) {
+  configure(commonDebConfig(true, true, 'ppc64le'))
 }
 
 tasks.register('buildOssDeb', Deb) {
@@ -399,12 +411,20 @@ tasks.register('buildAarch64Rpm', Rpm) {
   configure(commonRpmConfig(false, true, 'aarch64'))
 }
 
+tasks.register('buildPpc64leRpm', Rpm) {
+  configure(commonRpmConfig(false, true, 'ppc64le'))
+}
+
 tasks.register('buildRpm', Rpm) {
   configure(commonRpmConfig(false, true, 'x64'))
 }
 
 tasks.register('buildAarch64OssRpm', Rpm) {
   configure(commonRpmConfig(true, true, 'aarch64'))
+}
+
+tasks.register('buildPpc64leOssRpm', Rpm) {
+  configure(commonRpmConfig(true, true, 'ppc64le'))
 }
 
 tasks.register('buildOssRpm', Rpm) {
